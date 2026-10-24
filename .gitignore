@@ -1,0 +1,11 @@
+node_modules/
+test-results/
+packages/
+verification/
+*.pem
+*.key
+*.crx
+*.zip
+preview-*.png
+plan.md
+docs/github-draft.md

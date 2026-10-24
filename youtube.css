@@ -1,0 +1,44 @@
+#youtube-dl-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  height: var(--youtube-dl-height, 36px);
+  width: var(--youtube-dl-height, 36px);
+  min-width: 0;
+  margin-inline: 8px 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--youtube-dl-radius, 18px);
+  background: var(--youtube-dl-background, var(--yt-spec-badge-chip-background, #eee));
+  color: var(--youtube-dl-color, var(--yt-spec-text-primary, #0f0f0f));
+  font: 500 14px Roboto, Arial, sans-serif;
+  cursor: pointer;
+}
+#youtube-dl-button .ytIconWrapperHost,
+#youtube-dl-button .ytSpecIconShapeHost,
+#youtube-dl-button svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  fill: currentColor;
+  pointer-events: none;
+}
+#youtube-dl-button:hover { background: var(--yt-spec-button-chip-background-hover, #ddd); }
+#youtube-dl-button:focus-visible { outline: 2px solid var(--yt-spec-text-primary, #0f0f0f); outline-offset: 2px; }
+#youtube-dl-tooltip {
+  position: fixed;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  padding: 8px;
+  border-radius: 4px;
+  background: rgba(97, 97, 97, .95);
+  color: #fff;
+  font: 400 12px/1.4 Roboto, Arial, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#youtube-dl-tooltip[hidden] { display: none; }

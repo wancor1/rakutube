@@ -1,0 +1,82 @@
+const assert = require('node:assert/strict');
+const { source, scriptsFor, launchBrowser, newTestPage, outputFile } = require('./helpers.cjs');
+const resolutions = ['4k', '1440', '1080', '720', '480', '360', '240', '144'];
+const formats = resolutions.map(value => `<option value="${value}">${value === '4k' ? '4K' : value + 'p'}</option>`).join('');
+(async () => {
+  const browser = await launchBrowser();
+  try {
+    const page = await newTestPage(browser);
+    await page.route('https://settings.test/**', route => {
+      const name = new URL(route.request().url()).pathname.slice(1);
+      if (!['settings.html', 'settings.css', 'settings.js', 'shared.js'].includes(name)) return route.fulfill({ status: 404, body: '' });
+      return route.fulfill({ contentType: name.endsWith('.css') ? 'text/css' : name.endsWith('.js') ? 'text/javascript' : 'text/html', body: source(name) });
+    });
+    await page.goto('https://settings.test/settings.html');
+    await page.waitForFunction(() => !document.querySelector('select').disabled);
+    assert.equal(await page.locator('#resolution').inputValue(), '1080');
+    assert.deepEqual(await page.locator('option').evaluateAll(options => options.map(option => option.value)), resolutions);
+    await page.locator('#resolution').selectOption('720');
+    await page.waitForFunction(async () => (await chrome.storage.local.get({})).resolution === '720');
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('select').disabled);
+    assert.equal(await page.locator('#resolution').inputValue(), '720');
+    await page.setViewportSize({ width: 260, height: 130 });
+    await page.screenshot({ path: outputFile('settings-light.png') });
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.screenshot({ path: outputFile('settings-dark.png') });
+    await page.evaluate(() => { globalThis.__failStorageSet = true; });
+    await page.locator('#resolution').selectOption('480');
+    await page.locator('#error').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#resolution').inputValue(), '720');
+    assert.equal(await page.evaluate(async () => (await chrome.storage.local.get({})).resolution), '720');
+    await page.evaluate(() => { globalThis.__failStorageSet = false; });
+    await page.locator('#resolution').selectOption('1440');
+    await page.waitForFunction(async () => (await chrome.storage.local.get({})).resolution === '1440');
+    await page.locator('#error').waitFor({ state: 'hidden' });
+    console.log('PASS: popup defaults, auto-save, restore, save failure recovery, light/dark layout');
+    for (const resolution of resolutions) {
+      await page.goto('https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2Fabcdefghijk');
+      await page.setContent(`<input id="download-url"><select id="download-format"><option value="">Choose</option>${formats}</select><button id="load">Download</button>`);
+      await page.evaluate(async value => {
+        await chrome.storage.local.set({ resolution: value });
+        window.steps = [];
+        window.alert = message => { window.failure = message; };
+        document.querySelector('input').addEventListener('input', () => steps.push('input'));
+        document.querySelector('select').addEventListener('change', event => steps.push(event.target.value));
+        document.querySelector('button').addEventListener('click', () => steps.push('click'));
+      }, resolution);
+      await page.addScriptTag({ content: scriptsFor('y2down.cc') });
+      await page.waitForFunction(() => steps.includes('click'));
+      assert.deepEqual(await page.evaluate(() => steps), ['input', resolution, 'click']);
+      assert.equal(await page.locator('select').getAttribute('data-quality'), resolution);
+    }
+    console.log('PASS: saved resolutions 144p through 4K, input -> selected resolution -> click');
+    await page.goto('https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2Fabcdefghijk');
+    await page.setContent('<input id="download-url"><select id="download-format"><option value="720">720p</option></select><button id="load">Download</button>');
+    await page.evaluate(async () => {
+      await chrome.storage.local.set({ resolution: '4k' });
+      window.clicked = false;
+      window.alert = message => { window.failure = message; };
+      document.querySelector('button').addEventListener('click', () => { window.clicked = true; });
+      const originalNow = Date.now;
+      let elapsed = 0;
+      Date.now = () => originalNow() + (elapsed += 25000);
+    });
+    await page.addScriptTag({ content: scriptsFor('y2down.cc') });
+    await page.waitForFunction(() => window.failure);
+    assert.match(await page.evaluate(() => window.failure), /4K/);
+    assert.equal(await page.evaluate(() => window.clicked), false);
+    await page.goto('https://settings.test/settings.html');
+    await page.waitForFunction(() => !document.querySelector('select').disabled);
+    await page.evaluate(async () => { await chrome.storage.local.set({ resolution: 'invalid' }); });
+    await page.reload();
+    await page.waitForFunction(() => !document.querySelector('select').disabled);
+    assert.equal(await page.locator('select').inputValue(), '1080');
+    await page.addInitScript(() => { window.__failStorageGet = true; });
+    await page.reload();
+    await page.locator('#error').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('select').isDisabled(), true);
+    console.log('PASS: unavailable resolution stops, invalid saved value defaults, storage read error');
+    await page.close();
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });

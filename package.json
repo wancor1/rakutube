@@ -1,0 +1,8 @@
+{
+  "name": "rakutube",
+  "version": "1.1.3",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": { "test": "node tests/run.cjs" },
+  "devDependencies": { "playwright": "1.62.1" }
+}
