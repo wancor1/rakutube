@@ -2,6 +2,8 @@
 body { box-sizing: border-box; width: 260px; margin: 0; padding: 18px; background: light-dark(#fff, #1f1f1f); color: light-dark(#171717, #f1f1f1); }
 main { display: grid; gap: 10px; }
 label { font-weight: 500; }
+.toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggle input { margin: 0; width: 16px; height: 16px; accent-color: light-dark(#065fd4, #8ab4f8); }
 select { box-sizing: border-box; width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid light-dark(#ccc, #555); border-radius: 8px; background: light-dark(#f7f7f7, #292929); color: inherit; font: inherit; cursor: pointer; }
 select:focus-visible { outline: 2px solid light-dark(#065fd4, #8ab4f8); outline-offset: 2px; }
 #error { margin: 0; color: light-dark(#b3261e, #ffb4ab); font-size: 12px; }

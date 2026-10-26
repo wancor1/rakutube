@@ -1,6 +1,6 @@
 {
   "name": "rakutube",
-  "version": "1.1.3",
+  "version": "1.2.1",
   "private": true,
   "license": "Apache-2.0",
   "scripts": { "test": "node tests/run.cjs" },

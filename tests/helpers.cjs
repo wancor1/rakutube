@@ -20,11 +20,26 @@ async function newTestPage(browser, initialSettings = {}) {
     return { ...value, ...settings };
   });
   await page.addInitScript(() => {
+    const listeners = [];
     globalThis.chrome ||= {};
+    chrome.runtime = {
+      id: 'rakutube-test',
+      onMessage: { addListener: listener => listeners.push(listener) },
+      sendMessage: async message => { globalThis.sentMessage = message; return { ok: true }; }
+    };
+    globalThis.deliverRequest = request => new Promise(resolve => {
+      for (const listener of listeners) listener(request, { id: chrome.runtime.id }, resolve);
+    });
+    const storageListeners = [];
     chrome.storage = { local: {
       get: defaults => globalThis.__failStorageGet ? Promise.reject(new Error('Read failed')) : globalThis.__extensionStorage('get', defaults),
-      set: value => globalThis.__failStorageSet ? Promise.reject(new Error('Write failed')) : globalThis.__extensionStorage('set', value)
-    } };
+      set: async value => {
+        if (globalThis.__failStorageSet) throw new Error('Write failed');
+        await globalThis.__extensionStorage('set', value);
+        const changes = Object.fromEntries(Object.entries(value).map(([key, newValue]) => [key, { newValue }]));
+        for (const listener of storageListeners) listener(changes, 'local');
+      }
+    }, onChanged: { addListener: listener => storageListeners.push(listener) } };
   });
   await page.route('**/*', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body></body></html>' }));
   return page;

@@ -47,9 +47,18 @@
     button.setAttribute('aria-label', 'ダウンロード');
     button.append(createIcon());
     YouTubeDLTooltip.attach(button);
-    button.addEventListener('click', () => {
+    button.addEventListener('click', async () => {
       const url = YouTubeDL.videoUrl(location.href);
-      if (url) window.open(`https://y2down.cc/jaWa/#youtube-dl=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
+      if (!url || button.disabled) return;
+      button.disabled = true;
+      try {
+        const response = await chrome.runtime.sendMessage({ type: 'rakutube:open', id: crypto.randomUUID(), url });
+        if (!response?.ok) throw new Error(response?.error || '動画を受け渡せなかった');
+      } catch (error) {
+        alert(`DL: ${error.message}`);
+      } finally {
+        button.disabled = false;
+      }
     });
     return button;
   }

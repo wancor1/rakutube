@@ -12,6 +12,7 @@ if($taskManifest.action.default_icon -is [string]){
   $taskIcons+=@($taskManifest.action.default_icon.PSObject.Properties | ForEach-Object { $_.Value })
 }
 $taskFiles=@('manifest.json','LICENSE','settings.js','settings.css',$taskManifest.action.default_popup)+$taskIcons+@($taskManifest.content_scripts | ForEach-Object { $_.js; $_.css }) | Sort-Object -Unique
+if($taskManifest.background.service_worker){$taskFiles=@($taskFiles)+@($taskManifest.background.service_worker) | Sort-Object -Unique}
 New-Item -ItemType Directory -Path $taskStage -Force | Out-Null
 foreach($taskFile in $taskFiles){
   $taskSource=Join-Path $taskRoot $taskFile

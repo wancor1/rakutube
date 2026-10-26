@@ -57,13 +57,13 @@ const groups = '<style>body{--yt-spec-button-chip-background-hover:#ddd}body.dar
     await page.waitForTimeout(100);
     assert.equal(await page.locator('#youtube-dl-button').count(), 1);
     await page.locator('#youtube-dl-button').click();
-    assert.equal(await page.evaluate(() => window.opened[0]), 'https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2Fabcdefghijk');
+    assert.equal(await page.evaluate(() => window.sentMessage.url), 'https://youtu.be/abcdefghijk');
     await page.evaluate(() => {
       history.pushState({}, '', '/watch?v=123456789_-&si=other#time');
       document.dispatchEvent(new Event('yt-navigate-finish'));
     });
     await page.locator('#youtube-dl-button').click();
-    assert.equal(await page.evaluate(() => window.opened[0]), 'https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2F123456789_-');
+    assert.equal(await page.evaluate(() => window.sentMessage.url), 'https://youtu.be/123456789_-');
     await page.evaluate(() => {
       document.querySelector('ytd-watch-metadata').innerHTML = '<div id="top-level-buttons-computed"><div id="share"><button aria-label="Share">Share</button></div></div>';
     });
@@ -82,6 +82,7 @@ const groups = '<style>body{--yt-spec-button-chip-background-hover:#ddd}body.dar
     console.log('PASS: placement, label, duplicate prevention, navigation, rerender, URL cleanup');
     async function prepare(options) {
       await page.goto('https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2Fabcdefghijk');
+      await page.reload();
       await page.setContent(`<input id="download-url"><select id="download-format" data-quality="720">${options}</select><button id="load">Download</button>`);
       await page.evaluate(() => {
         window.steps = [];

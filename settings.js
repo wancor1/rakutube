@@ -1,8 +1,9 @@
 (() => {
   'use strict';
   const select = document.getElementById('resolution');
+  const autoDownload = document.getElementById('auto-download');
   const error = document.getElementById('error');
-  let saved = '1080';
+  let saved = { resolution: '1080', autoDownload: true };
   for (const resolution of YouTubeDL.resolutions) {
     const option = document.createElement('option');
     option.value = resolution;
@@ -15,27 +16,35 @@
   }
   async function restore() {
     try {
-      const settings = await chrome.storage.local.get({ resolution: '1080' });
-      saved = YouTubeDL.normalizeResolution(settings.resolution);
-      select.value = saved;
+      const settings = await chrome.storage.local.get({ resolution: '1080', autoDownload: true });
+      saved = { resolution: YouTubeDL.normalizeResolution(settings.resolution), autoDownload: settings.autoDownload !== false };
+      select.value = saved.resolution;
+      autoDownload.checked = saved.autoDownload;
       select.disabled = false;
+      autoDownload.disabled = false;
     } catch {
       showError('設定を読み込めない');
     }
   }
-  select.addEventListener('change', async () => {
-    const resolution = YouTubeDL.normalizeResolution(select.value);
+  async function save(event) {
+    const key = event.target === select ? 'resolution' : 'autoDownload';
+    const value = key === 'resolution' ? YouTubeDL.normalizeResolution(select.value) : autoDownload.checked;
     select.disabled = true;
+    autoDownload.disabled = true;
     showError('');
     try {
-      await chrome.storage.local.set({ resolution });
-      saved = resolution;
+      await chrome.storage.local.set({ [key]: value });
+      saved[key] = value;
     } catch {
-      select.value = saved;
+      select.value = saved.resolution;
+      autoDownload.checked = saved.autoDownload;
       showError('設定を保存できない');
     } finally {
       select.disabled = false;
+      autoDownload.disabled = false;
     }
-  });
+  }
+  select.addEventListener('change', save);
+  autoDownload.addEventListener('change', save);
   restore();
 })();

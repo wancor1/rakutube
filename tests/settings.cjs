@@ -14,17 +14,24 @@ const formats = resolutions.map(value => `<option value="${value}">${value === '
     await page.goto('https://settings.test/settings.html');
     await page.waitForFunction(() => !document.querySelector('select').disabled);
     assert.equal(await page.locator('#resolution').inputValue(), '1080');
+    assert.equal(await page.locator('#auto-download').isChecked(), true);
+    await page.locator('#auto-download').uncheck();
+    await page.waitForFunction(async () => (await chrome.storage.local.get({})).autoDownload === false);
     assert.deepEqual(await page.locator('option').evaluateAll(options => options.map(option => option.value)), resolutions);
     await page.locator('#resolution').selectOption('720');
     await page.waitForFunction(async () => (await chrome.storage.local.get({})).resolution === '720');
     await page.reload();
     await page.waitForFunction(() => !document.querySelector('select').disabled);
     assert.equal(await page.locator('#resolution').inputValue(), '720');
-    await page.setViewportSize({ width: 260, height: 130 });
+    assert.equal(await page.locator('#auto-download').isChecked(), false);
+    await page.setViewportSize({ width: 260, height: 170 });
     await page.screenshot({ path: outputFile('settings-light.png') });
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.screenshot({ path: outputFile('settings-dark.png') });
     await page.evaluate(() => { globalThis.__failStorageSet = true; });
+    await page.locator('#auto-download').click();
+    await page.locator('#error').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#auto-download').isChecked(), false);
     await page.locator('#resolution').selectOption('480');
     await page.locator('#error').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#resolution').inputValue(), '720');
@@ -36,6 +43,7 @@ const formats = resolutions.map(value => `<option value="${value}">${value === '
     console.log('PASS: popup defaults, auto-save, restore, save failure recovery, light/dark layout');
     for (const resolution of resolutions) {
       await page.goto('https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2Fabcdefghijk');
+      await page.reload();
       await page.setContent(`<input id="download-url"><select id="download-format"><option value="">Choose</option>${formats}</select><button id="load">Download</button>`);
       await page.evaluate(async value => {
         await chrome.storage.local.set({ resolution: value });
@@ -52,6 +60,7 @@ const formats = resolutions.map(value => `<option value="${value}">${value === '
     }
     console.log('PASS: saved resolutions 144p through 4K, input -> selected resolution -> click');
     await page.goto('https://y2down.cc/jaWa/#youtube-dl=https%3A%2F%2Fyoutu.be%2Fabcdefghijk');
+    await page.reload();
     await page.setContent('<input id="download-url"><select id="download-format"><option value="720">720p</option></select><button id="load">Download</button>');
     await page.evaluate(async () => {
       await chrome.storage.local.set({ resolution: '4k' });
@@ -76,6 +85,7 @@ const formats = resolutions.map(value => `<option value="${value}">${value === '
     await page.reload();
     await page.locator('#error').waitFor({ state: 'visible' });
     assert.equal(await page.locator('select').isDisabled(), true);
+    assert.equal(await page.locator('#auto-download').isDisabled(), true);
     console.log('PASS: unavailable resolution stops, invalid saved value defaults, storage read error');
     await page.close();
   } finally { await browser.close(); }
